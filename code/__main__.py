@@ -2,6 +2,8 @@
 __maim__.py contains the workflow to run all sub-programs
 """
 import os
+import matplotlib.pyplot as plt
+import seaborn as sns
 from util import *
 from base_models import *
 from deep_learning import *
@@ -19,6 +21,13 @@ def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, f
     # (a) Basic Statistic, Missing & Outlier/Extreme Values
     df.describe().to_csv(os.path.join(output, 'basic_statistic.csv'))
     ## Distribution of Features (by threshold) & Targets
+    target_prob(df=df, target=target, output=output)    # 78% vs 22%
+    ## Features by discrete/continuous
+    feat_discrete = [col for col in df.columns if getattr(df, col).nunique() <= feat_disc_threshold and col != target]
+    feat_continous = [col for col in df.columns if col not in feat_discrete and col != target]
+    ## Features of demographic 
+
+    ## Features of payments & status
 
 
     # (b) Data Normalization
