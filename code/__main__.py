@@ -9,7 +9,7 @@ from base_models import *
 from deep_learning import *
 from imbalanced_strategy import *
 
-def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, feat_disc_threshold=None, gpu_yn=False):
+def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, target_rename=None, feat_disc_threshold=None, gpu_yn=False):
     """
     Step 1: Data Preparation & EDA
     """
@@ -17,6 +17,10 @@ def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, f
     df = download_file(fielurl)
     if drop_col is not None:
         df.drop(columns=drop_col, inplace=True)
+    if target_rename is not None:
+        df.rename(columns={target:target_rename},inplace=True)
+        target=target_rename
+        
     # 1.2 EDA
     # (a) Basic Statistic, Missing & Outlier/Extreme Values
     df.describe().to_csv(os.path.join(output, 'basic_statistic.csv'))
@@ -26,13 +30,36 @@ def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, f
     feat_discrete = [col for col in df.columns if getattr(df, col).nunique() <= feat_disc_threshold and col != target]
     feat_continous = [col for col in df.columns if col not in feat_discrete and col != target]
     ## Features of demographic 
-
+    # feature_discrete(df = df, cols = feat_discrete, target = target, key = 'AGE', output = output,
+    #                  col_excl = ['PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6'],
+    #                  labels = {'SEX': {1:'Male', 2:'Female'},
+    #                            'EDUCATION': {0:'Unk1', 1:'Graduate', 2:'University', 3:'High Sch', 
+    #                                          4:'Others', 5:'Unk2', 6:'Unk3'},
+    #                            'MARRIAGE': {0:'Unknown', 1:'Married', 2:'Single', 3:'Others'}}
+    #                 )
     ## Features of payments & status
+    # feature_continuous  (df = df, target = target, fname='bill_amount.png', output = output,
+    #                     cols = ['BILL_AMT1', 'BILL_AMT2', 'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5', 'BILL_AMT6'],
+    #                     )
+    # feature_continuous  (df = df, target = target, fname='pay_amount.png', output = output,
+    #                     cols = ['PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6'],
+    #                     )
+    # feature_continuous  (df = df, target = target, fname='pay_status.png', output = output,
+    #                     cols = ['PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6'],
+    #                     )
+    # feature_continuous  (df = df, target = target, fname='limit_age.png', subplts= [1,2], figuresize=(5,5), output = output,
+    #                     cols = ['LIMIT_BAL', 'AGE'],
+    #                     )
 
-
-    # (b) Data Normalization
+    # (b) Data Normalization & Discretization
+    ## Normalization
+    df_std = data_standardize(df, target=target)
+    ## Discretization
 
     # (c) Correlation Matrix
+    plt.subplots(figsize=(30,30))
+    sns.heatmap(df_std.corr(), annot=True)
+    plt.savefig(os.path.join(output, 'corr_heat_map.png'))
 
     # (d) Feature Engineering/Selection
 
@@ -62,8 +89,9 @@ if __name__ == '__main__':
     """
     Step 2: Call the main program
     """
-    # main(fielurl = 'https://raw.githubusercontent.com/xinxiewu/datasets/main/credit_card_default/default_of_credit_card_clients.csv',
-    #      drop_col= ['ID'],
-    #      target  = 'default_payment_next_month',
-    #      feat_disc_threshold = 11,
-    #      gpu_yn = True)
+    main(fielurl = 'https://raw.githubusercontent.com/xinxiewu/datasets/main/credit_card_default/default_of_credit_card_clients.csv',
+         drop_col= ['ID'],
+         target  = 'default_payment_next_month',
+         target_rename = 'default',
+         feat_disc_threshold = 11,
+         gpu_yn = True)

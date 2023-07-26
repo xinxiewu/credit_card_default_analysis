@@ -5,6 +5,8 @@ util.py contains custom functions:
     3. target_prob: Generate probability by category - imbalance identifier
     4. feature_discrete: Generate Violin & Pie for discrete features
     5. feature_continuous: Generate Histogram for continuous features
+    6. data_standardize: Standardize X's and return DataFrame with Y
+    7. data_discretize: Per rule, convert continuous variables to discrete
 """
 
 import requests
@@ -76,7 +78,7 @@ def target_prob(df=None, target=None, output=None, fname='target_prob.png',
 
 # feature_discrete(df, cols, labels, key, target, fname, output, subplts, figsize, col_excl)
 def feature_discrete(df=None, cols=None, labels=None, key=None, target=None, fname='demographics.png', output=None,
-                     subplts=[3,2], figsize=(12,20), col_excl=None):
+                     subplts=[3,2], figsize=(20,30), col_excl=None, autopct='%0.1f%%', radius=1.5):
     """ Generate and save Violin & Pie for discrete features
 
     Args:
@@ -94,4 +96,56 @@ def feature_discrete(df=None, cols=None, labels=None, key=None, target=None, fna
     Returns:
         nothing to return
     """
+    cols_res = [col for col in cols if col not in col_excl]
+    fig, axes = plt.subplots(subplts[0], subplts[1], figsize=figsize)
+    for i, col in enumerate(cols_res):
+        inter = df.groupby(col)[target].count()
+        sns.violinplot(x=col, y=key, hue=target, split=True, data=df, ax=axes[i,0])
+        axes[i,0].set_xticklabels(labels=labels[col].values())
+        axes[i,1].pie(inter, labels=labels[col].values(), autopct=autopct, radius=radius)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output, fname))
+    return
+
+# feature_continuous(df, cols)
+def feature_continuous(df=None, cols=None, target=None, fname='financial_status.png', output=None,
+                       figuresize=(10,10), subplts=[3,2]):
+    """ Generate and save Histogram for continuous features
+
+    Args:
+        df: DataFrame
+        target: target variable name
+        output: output path
+        fname: file name ending with .pnd
+        figsize: figure size
+        cols: continuous features' name
+        subplts: list, # of sub plots
+
+    Returns:
+        nothing to return
+    """
+    fig, axes = plt.subplots(subplts[0], subplts[1], figsize=figuresize)
+    ax = axes.flatten()
+    for i, col in enumerate(cols):
+        sns.histplot(x=col,hue=target,data=df,kde=True,ax=ax[i])
+    plt.tight_layout()
+    plt.savefig(os.path.join(output, fname))
+    return
+
+def data_standardize(df=None,target=None):
+    """ Standardize X's and return DataFrame with Y
+
+    Args:
+        df: DataFrame
+        target: target variable name
+
+    Returns:
+        DataFrame
+    """
+    df_res = df.copy()
+    for col in df_res.columns[df_res.columns != target]:
+        df_res[col] = (df_res[col] - df_res[col].mean()) / df_res[col].std()
+    return df_res
+
+def data_discretize(df=None):
     return
