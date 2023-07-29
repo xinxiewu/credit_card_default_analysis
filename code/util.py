@@ -7,6 +7,9 @@ util.py contains custom functions:
     5. feature_continuous: Generate Histogram for continuous features
     6. data_standardize: Standardize X's and return DataFrame with Y
     7. data_discretize: Per rule, convert continuous variables to discrete
+    8. data_split: Split dataset into training, validation and testing
+    9. point_eval_metric: Given confusion matrix, generate point evaluation metrics
+    10. roc_curves: Given list of models, return AUC-ROC Curves
 """
 
 import requests
@@ -14,6 +17,9 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.model_selection import train_test_split
+import torch
+from sklearn.metrics import roc_curve, roc_auc_score
 
 # download_file(url)
 def download_file(url=None, output=r'../public/output'):
@@ -147,7 +153,7 @@ def data_standardize(df=None,target=None):
         df_res[col] = (df_res[col] - df_res[col].mean()) / df_res[col].std()
     return df_res
 
-def data_discretize(df=None, feat_continous=None, num_cat=None):
+def data_discretize(df=None, feat_continous=None, target=None, num_cat=None):
     """ Standardize X's and return DataFrame with Y
 
     Args:
@@ -162,4 +168,112 @@ def data_discretize(df=None, feat_continous=None, num_cat=None):
     for col in feat_continous:
         gap = (getattr(df_disct, col).max() - getattr(df_disct, col).min())/num_cat
         df_disct[col] = ((getattr(df_disct, col) - getattr(df_disct, col).min()) / gap).round(decimals=0).astype(int)
+    for col in df_disct.columns:
+        temp = getattr(df_disct, col).min()
+        if temp < 0 and col != target:
+            df_disct[col] = getattr(df_disct, col) - temp
     return df_disct
+
+# data_split()
+def data_split(df=None, label=None, validation=False, train_size=0.8, random_state=42, tensor=False):
+    """ Split dataset into training, validation & 
+    
+    Args:
+        df: DataFrame
+        label: str, label column name
+        validation: boolean, True if a validation set is needed, otherwise False
+        train_size: float, size of training dataset, <= 1
+        random_state: int, random state, default value as 42
+        tensor: boolean, True if need to convert to Tensor, otherwise False
+
+    Returns:
+        DataFrames, split
+    """
+    if validation == False and tensor == False:
+        x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,df.columns != label], df.iloc[:,df.columns == label], 
+                                                            test_size=(1-train_size), random_state=random_state)
+        return x_train, x_test, y_train, y_test
+    elif validation == True and tensor == True:
+        x_train, x_val_te, y_train, y_val_te = train_test_split(df.iloc[:,df.columns != label], df.iloc[:,df.columns == label], 
+                                                            test_size=(1-train_size), random_state=random_state)
+        x_val, x_test, y_val, y_test = train_test_split(x_val_te, y_val_te, 
+                                                            test_size=0.5, random_state=random_state)
+        X_train = torch.Tensor(x_train.values)
+        X_val = torch.Tensor(x_val.values)
+        X_test = torch.Tensor(x_test.values)
+        Y_train = torch.Tensor(y_train.values)
+        Y_val = torch.Tensor(y_val.values)
+        Y_test = torch.Tensor(y_test.values)
+        return X_train, X_val, X_test, Y_train, Y_val, Y_test
+
+# point_eval_metric()
+def point_eval_metric(conf_m=None, data=None, model=None, y_true=None, y_score=None, class_prior=None, svm_kernel=None):
+    """ Given confusion matrix, generate point evaluation metrics
+
+    Args:
+        conf_m: confusion matrix
+        data: continous or discrete
+        model: str
+        y_true: true target values
+        y_score: probability of predicted target
+    
+    Returns:
+        DataFrame with info: 
+            - model, test_size, prevalence, acc_tot, acc_pos, acc_neg, prec, recall, f1, auc-roc
+    """
+    if model.lower() == 'lr':
+        model = 'LogisticReg' + '-' + data
+    elif model.lower() == 'nb':
+        model = 'NaiveBayes' + '-' + data + '-' + str(class_prior)
+    elif model.lower() == 'svm':
+        model = 'SVM' + '-' + data + '-' + svm_kernel
+    elif model.lower() == 'rf':
+        model = 'Random Forest'
+    elif model.lower() == 'dt':
+        model = 'Decision Tree' + '-' + data
+    elif model.lower() == 'gda':
+        model = 'Gaussian Analysis' + '-' + data + '-' + str(class_prior)
+    else:
+        model = model
+
+    tn, fp, fn, tp = conf_m[0][0], conf_m[0][1], conf_m[1][0], conf_m[1][1]
+    data =  {'Model': [model],
+             'Test Size': [tn + fn + fp + tp],
+             'Prevalence': [format((tp + fn) / (tn + fn + fp + tp), '.2%')],
+             'Total Accuracy': [format((tp + tn) / (tn + fn + fp + tp), '.2%')],
+             'Positive Accuracy': [format(tp / (tp + fn), '.2%')],
+             'Negative Accuracy': [format(tn / (tn + fp), '.2%')],
+             'Precision': [format(tp / (tp+fp), '.2%')],
+             'Recall': [format(tp / (tp+fn), '.2%')],
+             'F1-Score': [format(2*((tp / (tp+fp)) * (tp / (tp+fn))) / ((tp / (tp+fp)) + (tp / (tp+fn))), '.2%')],
+             'AUC-ROC': [format(roc_auc_score(y_true, y_score), '.4')]
+            }
+    
+    return pd.DataFrame.from_dict(data)
+
+# roc_curves
+def roc_curves(y_true=None, y_score=None, pos_label=1, models=None, output=None, fname=None, figuresize=(10,10)):
+    """ Given confusion matrix, generate point evaluation metrics
+
+    Args:
+        models: list of str
+        y_true: true target values
+        y_score: probability of predicted target
+        output: output path
+        fname: output file name
+        figuresize: size of the output graph
+    
+    Returns:
+        Nothing to return
+    """
+    fig = plt.figure(figsize=figuresize)
+    for i, model in enumerate(models):
+        fpr, tpr, _ = roc_curve(y_true, y_score[i], pos_label=pos_label)
+        plt.plot(fpr, tpr, label=model)
+    plt.legend(loc='lower right')
+    plt.xlabel('FPR')
+    plt.ylabel('TPR')
+    plt.title('ROC Curve')
+    plt.savefig(os.path.join(output, fname))
+
+    return
