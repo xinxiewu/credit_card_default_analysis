@@ -9,7 +9,7 @@ from base_models import *
 from deep_learning import *
 from imbalanced_strategy import *
 
-def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, target_rename=None, feat_disc_threshold=None, gpu_yn=False):
+def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, target_rename=None, feat_disc_threshold=None, cont_num_cat=None, gpu_yn=False):
     """
     Step 1: Data Preparation & EDA
     """
@@ -55,13 +55,15 @@ def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, t
     ## Normalization
     df_std = data_standardize(df, target=target)
     ## Discretization
+    df_disct = data_discretize(df, feat_continous, cont_num_cat)
 
     # (c) Correlation Matrix
     plt.subplots(figsize=(30,30))
     sns.heatmap(df_std.corr(), annot=True)
     plt.savefig(os.path.join(output, 'corr_heat_map.png'))
 
-    # (d) Feature Engineering/Selection
+    # (d) Feature Engineering/Selection - PCA + K-means
+
 
     """
     Step 2: Base Models - Confusion Matrix & AUC-ROC
@@ -94,4 +96,5 @@ if __name__ == '__main__':
          target  = 'default_payment_next_month',
          target_rename = 'default',
          feat_disc_threshold = 11,
+         cont_num_cat = 9,
          gpu_yn = True)

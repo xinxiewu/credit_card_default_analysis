@@ -147,5 +147,19 @@ def data_standardize(df=None,target=None):
         df_res[col] = (df_res[col] - df_res[col].mean()) / df_res[col].std()
     return df_res
 
-def data_discretize(df=None):
-    return
+def data_discretize(df=None, feat_continous=None, num_cat=None):
+    """ Standardize X's and return DataFrame with Y
+
+    Args:
+        df: DataFrame
+        feat_continous: continuous variables
+        num_cat: int
+
+    Returns:
+        DataFrame
+    """
+    df_disct = df.copy()
+    for col in feat_continous:
+        gap = (getattr(df_disct, col).max() - getattr(df_disct, col).min())/num_cat
+        df_disct[col] = ((getattr(df_disct, col) - getattr(df_disct, col).min()) / gap).round(decimals=0).astype(int)
+    return df_disct
