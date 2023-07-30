@@ -253,6 +253,10 @@ def point_eval_metric(conf_m=None, data=None, model=None, y_true=None, y_score=N
         f1 = 0
     else:
         f1 = 2*(prec * pos_rate) / (prec + pos_rate)
+    if y_score is None:
+        auc_roc = 0
+    else:
+        auc_roc = roc_auc_score(y_true, y_score)
     data =  {'Model': [model],
              'Test Size': [tn + fn + fp + tp],
              'Prevalence': [format((tp + fn) / (tn + fn + fp + tp), '.2%')],
@@ -262,7 +266,7 @@ def point_eval_metric(conf_m=None, data=None, model=None, y_true=None, y_score=N
              'Precision': [format(prec, '.2%')],
              'Recall': [format(pos_rate, '.2%')],
              'F1-Score': [format(f1, '.2%')],
-             'AUC-ROC': [format(roc_auc_score(y_true, y_score), '.4')]
+             'AUC-ROC': [format(auc_roc, '.4')]
             }
     
     return pd.DataFrame.from_dict(data)

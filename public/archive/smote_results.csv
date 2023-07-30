@@ -1,0 +1,2 @@
+Model,Test Size,Prevalence,Total Accuracy,Positive Accuracy,Negative Accuracy,Precision,Recall,F1-Score,AUC-ROC
+LogisticReg-continuous,6000,21.88%,68.60%,65.73%,69.40%,37.57%,65.73%,47.81%,0.7306
