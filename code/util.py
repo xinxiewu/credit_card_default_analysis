@@ -237,15 +237,31 @@ def point_eval_metric(conf_m=None, data=None, model=None, y_true=None, y_score=N
         model = model
 
     tn, fp, fn, tp = conf_m[0][0], conf_m[0][1], conf_m[1][0], conf_m[1][1]
+    if tp + fn == 0:
+        pos_rate = 0
+    else:
+        pos_rate = tp / (tp + fn)
+    if tn + fp == 0:
+        neg_rate = 0
+    else:
+        neg_rate = tn / (tn + fp)
+    if tp + fp == 0:
+        prec = 0
+    else:
+        prec = tp / (tp+fp)
+    if pos_rate == 0 and prec == 0:
+        f1 = 0
+    else:
+        f1 = 2*(prec * pos_rate) / (prec + pos_rate)
     data =  {'Model': [model],
              'Test Size': [tn + fn + fp + tp],
              'Prevalence': [format((tp + fn) / (tn + fn + fp + tp), '.2%')],
              'Total Accuracy': [format((tp + tn) / (tn + fn + fp + tp), '.2%')],
-             'Positive Accuracy': [format(tp / (tp + fn), '.2%')],
-             'Negative Accuracy': [format(tn / (tn + fp), '.2%')],
-             'Precision': [format(tp / (tp+fp), '.2%')],
-             'Recall': [format(tp / (tp+fn), '.2%')],
-             'F1-Score': [format(2*((tp / (tp+fp)) * (tp / (tp+fn))) / ((tp / (tp+fp)) + (tp / (tp+fn))), '.2%')],
+             'Positive Accuracy': [format(pos_rate, '.2%')],
+             'Negative Accuracy': [format(neg_rate, '.2%')],
+             'Precision': [format(prec, '.2%')],
+             'Recall': [format(pos_rate, '.2%')],
+             'F1-Score': [format(f1, '.2%')],
              'AUC-ROC': [format(roc_auc_score(y_true, y_score), '.4')]
             }
     
