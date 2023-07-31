@@ -26,6 +26,7 @@ def main(fielurl=None, output=r'../public/output', drop_col=None, target=None, t
         target=target_rename
         
     # 1.2 EDA
+    print(f"EDA Starts")
     # (a) Basic Statistic, Missing & Outlier/Extreme Values
     df.describe().to_csv(os.path.join(output, 'basic_statistic.csv'))
     ## Distribution of Features (by threshold) & Targets
@@ -218,7 +219,7 @@ if __name__ == '__main__':
          feat_disc_threshold = 11,
          cont_num_cat = 9,
          km_epoch = 100,
-         nn_epoch = 1000,
+         nn_epoch = 200,
          nn_batch_size = 64,
          learning_rate = 0.01,
          gpu_yn = True)
